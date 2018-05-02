@@ -13,6 +13,8 @@ namespace ScadaServices
     //Accepting and displaying the temperature data
     public class DataProviderService : IDataProviderService
     {
+
+        private object lockThis = new object();
         public void SendTemperature(Temperature temperatureSensor, Location sensorLocation, string stationName)
         {
             string locationData = String.Format("Location: {0}, Latitude: {1}, Longitude: {2}, Statio name: {3}",
@@ -21,6 +23,20 @@ namespace ScadaServices
 
             Console.WriteLine(locationData);
             Console.WriteLine(sensorData);
+
+            //This is critical section, lock keyword ensure that next thread can't enter critical section while another thread is
+            //in critical section
+            lock (lockThis)
+            {
+                //Check is there any subscribed client for current temperature sensor
+                foreach (KeyValuePair<INotifySubClient, SubClientData> subs in PubSubService.subscribers)
+                {
+                    if (subs.Value.Ids.Contains(temperatureSensor.Id))
+                    {
+                        subs.Key.Notify(temperatureSensor.Id, temperatureSensor.TempValue, true);
+                    }
+                }
+            }
             
         }
 
@@ -33,6 +49,20 @@ namespace ScadaServices
 
             Console.WriteLine(locationData);
             Console.WriteLine(sensorData);
+
+            //This is critical section, lock keyword ensure that next thread can't enter critical section while another thread is
+            //in critical section
+            lock (lockThis)
+            {
+                //Check is there any subscribed client for current humidity sensor
+                foreach (KeyValuePair<INotifySubClient, SubClientData> subs in PubSubService.subscribers)
+                {
+                    if (subs.Value.Ids.Contains(humiditySensor.Id))
+                    {
+                        subs.Key.Notify(humiditySensor.Id, humiditySensor.HumValue, false);
+                    }
+                }
+            }
         }
         
     }
